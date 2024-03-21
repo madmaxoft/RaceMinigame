@@ -57,6 +57,14 @@ end
 
 
 
+function Arena:world()
+	return self.mWorld
+end
+
+
+
+
+
 function Arena:worldName()
 	return self.mWorld:GetName()
 end
@@ -84,6 +92,7 @@ function Arena:addTrack(aStartPos, aStartYawDegrees, aStartPitchDegrees, aFinish
 	local numTracks = #self.mTracks + 1
 	self.mTracks[numTracks] = Track:new(
 	{
+		mParentArena = self,
 		mStartPos = aStartPos,
 		mStartYawDegrees = aStartYawDegrees,
 		mStartPitchDegrees = aStartPitchDegrees,
@@ -129,7 +138,7 @@ function Arena.fromLuaTable(aArenaDef)
 
 	-- Load all the tracks:
 	for idx, trackDef in ipairs(aArenaDef.mTracks) do
-		local trk, msg = Track.fromLuaTable(trackDef)
+		local trk, msg = Track.fromLuaTable(trackDef, res)
 			if not(trk) then
 				return nil, "Failed to load track #" .. idx .. " of arena " .. res.mName .. ": " .. tostring(msg)
 			end
@@ -162,6 +171,7 @@ end
 -- needs to change worlds
 function Arena:teleportEntityToTrackStart(aEntity, aTrackNum)
 	assert(aEntity)
+	assert(type(aTrackNum) == "number")
 
 	-- Get the track:
 	local track = self.mTracks[aTrackNum]
@@ -170,7 +180,7 @@ function Arena:teleportEntityToTrackStart(aEntity, aTrackNum)
 	end
 
 	-- Teleport:
-	teleportEntityToWorldPos(aEntity, self.mWorld, track.mStartPos, track.mStartYawDegrees, track.mStartPitchDegrees)
+	track:teleportEntityToStart(aEntity)
 	return true
 end
 
@@ -195,4 +205,23 @@ function Arena:saveToLuaTable()
 	end
 
 	return res
+end
+
+
+
+
+
+--- Returns the number of tracks in this arena
+function Arena:trackCount()
+	return #self.mTracks
+end
+
+
+
+
+
+--- Returns the track specified by its index
+-- Returns nil if no such track
+function Arena:trackByIdx(aTrackIdx)
+	return self.mTracks[aTrackIdx]
 end

@@ -208,4 +208,64 @@ end
 
 
 
+--- Returns a random arena out of all the present arenas
+-- Returns nil and error message on error
+function Arenas:pickStartingArena()
+	if not(self.mArenas[1]) then
+		return nil, "There are no defined arenas to race in."
+	end
+
+	local num = #self.mArenas
+	return self.mArenas[math.random(num)]
+end
+
+
+
+
+
+--- Returns the arena that is in mArenas after the specified arena
+-- Returns nil and error message on error
+function Arenas:nextArena(aArena)
+	if not(aArena) then
+		return nil, "Invalid arena"
+	end
+
+	for idx, arena in ipairs(self.mArenas) do
+		if (arena == aArena) then
+			local nextIdx = (idx % #self.mArenas) + 1
+			return self.mArenas[nextIdx]
+		end
+	end
+
+	return nil, "Arena not found"
+end
+
+
+
+
+
+--- Returns the maximum number of players that can race.
+-- This is equal to the lowest track count among all the arenas
+-- Returns 0 if there are no arenas defined
+function Arenas:getMaxPlayers()
+	-- No arenas -> zero players:
+	if not(self.mArenas[1]) then
+		return 0
+	end
+
+	-- Iterate over all arenas to find the lowest count:
+	local res = self.mArenas[1]:trackCount()
+	for _, arena in ipairs(self.mArenas) do
+		local trackCount = arena:trackCount()
+		if (trackCount < res) then
+			res = trackCount
+		end
+	end
+	return res
+end
+
+
+
+
+
 gArenas = Arenas:new()

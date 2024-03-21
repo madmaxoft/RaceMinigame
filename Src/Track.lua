@@ -18,6 +18,7 @@ Track.__index = Track
 -- mFinishCuboid members
 function Track:new(aObj)
 	assert(aObj)
+	assert(type(aObj.mParentArena) == "table")
 	assert(tolua.type(aObj.mStartPos) == "Vector3<double>")
 	assert(type(aObj.mStartYawDegrees) == "number")
 	assert(type(aObj.mStartPitchDegrees) == "number")
@@ -42,8 +43,9 @@ end
 --- Loads the track parameters from the specified Lua table
 -- Used to load the arena config from a file; see saveToLuaTable() for the counterpart
 -- Returns a new Track object on success, nil and error message on failure
-function Track.fromLuaTable(aTrackDef)
+function Track.fromLuaTable(aTrackDef, aParentArena)
 	assert(type(aTrackDef) == "table")
+	assert(type(aParentArena) == "table")
 
 	-- Check that the required data is present:
 	if (
@@ -58,6 +60,7 @@ function Track.fromLuaTable(aTrackDef)
 	-- Create the Track object:
 	local res =
 	{
+		mParentArena = aParentArena,
 		mStartPos = loadVector3FromTable(aTrackDef.mStartPos),
 		mStartYawDegrees = aTrackDef.mStartYawDegrees,
 		mStartPitchDegrees = aTrackDef.mStartPitchDegrees,
@@ -81,4 +84,24 @@ function Track:saveToLuaTable()
 		mStartPitchDegrees = self.mStartPitchDegrees,
 		mFinishCuboid = saveCuboidToTable(self.mFinishCuboid)
 	}
+end
+
+
+
+
+
+--- Teleports the specified entity to the track's start
+-- Note that if the entity is changing worlds, the teleport is done asynchronously after this function returns
+function Track:teleportEntityToStart(aEntity)
+	assert(aEntity)
+
+	teleportEntityToWorldPos(aEntity, self.mParentArena:world(), self.mStartPos, self.mStartYawDegrees, self.mStartPitchDegrees)
+end
+
+
+
+
+
+function Track:finishCuboid()
+	return self.mFinishCuboid
 end

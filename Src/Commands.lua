@@ -14,12 +14,36 @@ require("Race")
 
 
 --- Returns the player's current WE selection, or nil if none / no WE
+-- Adjusts the cuboid coords so that its IsInside() can be used to detect player finishing
+-- (The IsInside() function uses "p1.x <= x <= p2.x" logic that excludes the p2 maxima)
 local function getWorldEditSelection(aPlayer)
 	local sel = cCuboid()
 	if not(cPluginManager:CallPlugin("WorldEdit", "GetPlayerCuboidSelection", aPlayer, sel)) then
 		return nil
 	end
+	sel:Sort()
+	sel.p2.x = sel.p2.x + 1
+	sel.p2.y = sel.p2.y + 1
+	sel.p2.z = sel.p2.z + 1
 	return sel
+end
+
+
+
+
+
+--- Sets the player's WE selection to the specified cuboid
+-- Reverts the adjustment done in getWorldEditSelection()
+local function setWorldEditSelection(aPlayer, aSelection)
+	assert(tolua.type(aPlayer) == "cPlayer")
+	assert(tolua.type(aSelection) == "cCuboid")
+
+	local sel = cCuboid(aSelection)
+	sel.p2.x = sel.p2.x - 1
+	sel.p2.y = sel.p2.y - 1
+	sel.p2.z = sel.p2.z - 1
+
+	cPluginManager:CallPlugin("WorldEdit", "SetPlayerCuboidSelection", aPlayer, sel)
 end
 
 
@@ -83,7 +107,13 @@ function rmgJoin(aSplit, aPlayer)
 		return true
 	end
 
-	gRace:addPlayer(aPlayer)
+	local isSuccess, msg = gRace:addPlayer(aPlayer)
+	if not(isSuccess) then
+		aPlayer:SendMessageFailure("Cannot join race: " .. tostring(msg))
+		return true
+	end
+
+	aPlayer:SendMessage("You have joined the race.")
 	return true
 end
 
@@ -100,14 +130,45 @@ function rmgAllJoin(aSplit, aPlayer)
 		return true
 	end
 
+	local acc = {}
+	local numAdded = 0
 	cRoot.Get():ForEachPlayer(
 		function(aCBPlayer)
 			if (aPlayer == aCBPlayer) then
 				return
 			end
-			gRace:addPlayer(aPlayer)
+			local isSuccess, msg = gRace:addPlayer(aCBPlayer)
+			if not(isSuccess) then
+				table.insert(acc, string.format("%s: %s", aCBPlayer:GetName(), tostring(msg)))
+			else
+				aCBPlayer:SendMessage("You have joined the race.")
+				numAdded = numAdded + 1
+			end
 		end
 	)
+	aPlayer:SendMessageSuccess(string.format("%d players joined the race", numAdded))
+	if (acc[1]) then
+		aPlayer:SendMessageSuccess(string.format("%d players didn't join:", #acc))
+		for _, msg in ipairs(acc) do
+			aPlayer:SendMessageSuccess("\t" .. msg)
+		end
+	end
+	return true
+end
+
+
+
+
+
+--- Handler for the "/rmg leave" command
+-- Removes the player from the race
+function rmgLeave(aSplit, aPlayer)
+	local isSuccess, msg = gRace:removePlayer(aPlayer)
+	if not(isSuccess) then
+		aPlayer:SendMessageFailure("Cannot leave race: " .. tostring(msg))
+		return true
+	end
+	aPlayer:SendMessageSuccess("You have left the race")
 	return true
 end
 
@@ -282,7 +343,8 @@ function rmgArenaDelTrack(aSplit, aPlayer)
 	end
 
 	-- If the user didn't give an arena name, abort:
-	if not(aSplit[4]) then
+	local arenaName = aSplit[4]
+	if not(arenaName) then
 		aPlayer:SendMessageFailure("Missing parameter: arena name")
 		return true
 	end
@@ -326,7 +388,8 @@ function rmgArenaGotoTrack(aSplit, aPlayer)
 	end
 
 	-- If the user didn't give an arena name, abort:
-	if not(aSplit[4]) then
+	local arenaName = aSplit[4]
+	if not(arenaName) then
 		aPlayer:SendMessageFailure("Missing parameter: arena name")
 		return true
 	end
@@ -345,10 +408,16 @@ function rmgArenaGotoTrack(aSplit, aPlayer)
 		return true
 	end
 
-	local isSuccess, msg = arena:teleportEntityToTrackStart(trackNum, aPlayer)
+	-- Teleport the player:
+	local isSuccess, msg = arena:teleportEntityToTrackStart(aPlayer, trackNum)
 	if not(isSuccess) then
 		aPlayer:SendMessageFailure("Cannot go to track: " .. msg)
 		return true
 	end
+
+	-- Set the player's WE selection:
+	local finishCuboid = arena:trackByIdx(trackNum):finishCuboid()
+	setWorldEditSelection(aPlayer, finishCuboid)
+
 	return true
 end

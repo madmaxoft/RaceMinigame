@@ -63,6 +63,12 @@ gPluginInfo =
 					HelpString = "All players except you join the races",
 					Permission = "rmg.alljoin",
 				},
+				leave =
+				{
+					Handler = rmgLeave,
+					HelpString = "Leave the races",
+					Permission = "rmg.leave",
+				},
 
 				arena =
 				{

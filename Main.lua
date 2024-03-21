@@ -31,6 +31,8 @@ function Initialize(aPlugin)
 		LOGWARNING("RaceMinigame: Failed to load arena config: " .. msg)
 	end
 
+	gRace:registerHooks()
+
 	LOG("RaceMinigame initialized")
 	return true
 end
