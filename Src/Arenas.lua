@@ -189,6 +189,9 @@ function Arenas:loadFromFile(aFileName)
 	if not(isSuccess) then
 		return nil, cfg
 	end
+	if not(cfg) then
+		return nil, "Empty configuration"
+	end
 
 	-- Load from the configuration table
 	for idx, arenaDef in ipairs(cfg.mArenas) do

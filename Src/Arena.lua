@@ -6,48 +6,21 @@
 
 
 
+require("Track")
+require("Utils")
+
+
+
+
+
 Arena = {}
 
 
 
 
 
-local function teleportEntityToWorldPos(aEntity, aWorld, aStartPos, aStartYawDegrees, aStartPitchDegrees)
-	assert(aEntity)
-	assert(tolua.type(aWorld) == "cWorld")
-	assert(tolua.type(aStartPos) == "Vector3<double>")
-	assert(type(aStartYawDegrees) == "number")
-
-	-- If the entity is in the same world, just teleport:
-	if (aEntity:GetWorld() == aWorld) then
-		aEntity:TeleportToCoords(aStartPos.x, aStartPos.y, aStartPos.z)
-		aEntity:SetYaw(aStartYawDegrees)
-		aEntity:SetPitch(aStartPitchDegrees)
-		if (aEntity:IsPlayer()) then
-			aEntity:SendRotation(aStartYawDegrees, aStartPitchDegrees)
-		end
-		return
-	end
-
-	-- If the entity is in a different world, first orient it properly and then move it to the arena's world:
-	aEntity:SetYaw(aStartYawDegrees)
-	aEntity:SetPitch(aStartPitchDegrees)
-	if (aEntity:IsPlayer()) then
-		aEntity:SendRotation(aStartYawDegrees, aStartPitchDegrees)
-	end
-	local shouldSendRespawn = false
-	if (aEntity:IsPlayer()) then
-		shouldSendRespawn = (aEntity:GetWorld():GetDimension() ~= aWorld:GetDimension())  -- Only ever send respawn packet when changing dimensions
-	end
-	aEntity:MoveToWorld(aWorld, shouldSendRespawn, aStartPos)
-end
-
-
-
-
-
 --- Creates a new Arena object
--- Requires a pre-initalized table with at least the mWorld, mStartPos and mStartYawDegrees members
+-- Requires a pre-initalized table with at least the mWorld, mStartPos, mStartYawDegrees and mStartPitchDegrees members
 function Arena:new(aObj)
 	assert(aObj)
 	assert(tolua.type(aObj.mWorld) == "cWorld")
@@ -76,7 +49,48 @@ end
 
 
 
-function Arena:addTrack(aPosition, aYawDegrees, aPitchDegrees, aFinishCuboid)
+function Arena:name()
+	return self.mName
+end
+
+
+
+
+
+function Arena:worldName()
+	return self.mWorld:GetName()
+end
+
+
+
+
+
+function Arena:tracks()
+	return self.mTracks
+end
+
+
+
+
+
+-- Adds a new track to the arena, with specified start and finish positions
+-- Returns the new track's number on success, nil and error message on failure
+function Arena:addTrack(aStartPos, aStartYawDegrees, aStartPitchDegrees, aFinishCuboid)
+	assert(tolua.type(aStartPos) == "Vector3<double>")
+	assert(type(aStartYawDegrees) == "number")
+	assert(type(aStartPitchDegrees) == "number")
+	assert(tolua.type(aFinishCuboid) == "cCuboid")
+
+	local numTracks = #self.mTracks + 1
+	self.mTracks[numTracks] = Track:new(
+	{
+		mStartPos = aStartPos,
+		mStartYawDegrees = aStartYawDegrees,
+		mStartPitchDegrees = aStartPitchDegrees,
+		mFinishCuboid = aFinishCuboid
+	})
+
+	return numTracks
 end
 
 
@@ -104,7 +118,7 @@ function Arena.fromLuaTable(aArenaDef)
 	local res =
 	{
 		mWorld = cRoot:Get():GetWorld(aArenaDef.mWorldName),
-		mStartPos = Vector3d(aArenaDef.mStartPos[1], aArenaDef.mStartPos[2], aArenaDef.mStartPos[3]),
+		mStartPos = loadVector3FromTable(aArenaDef.mStartPos),
 		mStartYawDegrees = aArenaDef.mStartYawDegrees,
 		mStartPitchDegrees = aArenaDef.mStartPitchDegrees,
 		mTracks = {},
@@ -170,19 +184,14 @@ function Arena:saveToLuaTable()
 	local res =
 	{
 		mWorldName = self.mWorld:GetName(),
-		mStartPos =
-		{
-			self.mStartPos.x,
-			self.mStartPos.y,
-			self.mStartPos.z
-		},
+		mStartPos = saveVector3ToTable(self.mStartPos),
 		mStartYawDegrees = self.mStartYawDegrees,
 		mStartPitchDegrees = self.mStartPitchDegrees,
 		mTracks = {},
 		mName = self.mName,
 	}
 	for idx, track in ipairs(self.mTracks) do
-		res.mTracks[idx] = track:saveToLua()
+		res.mTracks[idx] = track:saveToLuaTable()
 	end
 
 	return res

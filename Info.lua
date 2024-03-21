@@ -158,11 +158,29 @@ gPluginInfo =
 		{
 			Subcommands =
 			{
+				alljoin =
+				{
+					Handler = conRmgAlljoin,
+					HelpString = "All players join the race",
+				},  -- "rmg alljoin" subcommand
+
 				list =
 				{
 					Handler = conRmgList,
 					HelpString = "Lists all the arenas",
 				},  -- "rmg list" subcommand
+
+				reload =
+				{
+					Handler = conRmgReload,
+					HelpString = "Re-loads the RaceMinigame configuration",
+				},  -- "rmg reload" subcommand
+
+				save =
+				{
+					Handler = conRmgSave,
+					HelpString = "Re-saves the current RaceMinigame configuration",
+				},  -- "rmg save" subcommand
 			},  -- Subcommands
 		},  -- "rmg" command
 	},  -- ConsoleCommands

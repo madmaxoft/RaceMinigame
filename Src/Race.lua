@@ -34,7 +34,8 @@ end
 --- Initializes the object of a Race class with its initial state
 function Race:init()
 	self.mIsInProgress = false
-	self.mPlayers = { n = 0 }
+	self.mPlayersArray = {}
+	self.mPlayersByUuid = {}
 	self.mCurrentArena = nil
 	self.mScore = Score:new()
 end
@@ -47,6 +48,37 @@ end
 --- Returns whether a race is currently in progress
 function Race:isInProgress()
 	return self.mIsInProgress
+end
+
+
+
+
+
+--- Adds the specified player to the race
+-- Returns true on success, nil and message on failure
+function Race:addPlayer(aPlayer)
+	assert(not(self.mIsInProgress))
+	assert(tolua.type(aPlayer) == "cPlayer")
+
+	-- Check if the player is already present:
+	local uuid = aPlayer:GetUUID()
+	if (self.mPlayersByUuid[uuid]) then
+		return nil, "Already joined"
+	end
+
+	-- Add the player:
+	table.insert(self.mPlayersArray, aPlayer)
+	self.mPlayersByUuid[uuid] = aPlayer
+	return true
+end
+
+
+
+
+
+--- Returns whether the player is in the race
+function Race:hasPlayerJoined(aPlayer)
+	return (self.mPlayersByUuid[aPlayer:GetUUID()] ~= nil)
 end
 
 
