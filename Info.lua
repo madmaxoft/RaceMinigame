@@ -44,6 +44,7 @@ gPluginInfo =
 				{
 					Handler = rmgContinue,
 					HelpString = "Continues to the next race arena, awarding no points for players who currently haven't finished the current arena yet.",
+					Permission = "rmg.continue",
 				},
 				finish =
 				{
